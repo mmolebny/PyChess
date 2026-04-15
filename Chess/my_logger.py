@@ -17,3 +17,22 @@ def log(level="INFO", formatter=text_formatter):
                 "level": current_level,
                 "func_name": func.__name__,
             }
+            record.update(data_dict)
+            print(formatter(record))
+
+        if inspect.iscoroutinefunction(func):
+            @wraps(func)
+            async def async_wrapper(*args, **kwargs):
+                start_time = time.time()
+                try:
+                    result = await func(*args, **kwargs)
+                    process_log(level, {"args": args, "result": result, "execution_time": time.time() - start_time})
+                    return result
+                except Exception as e:
+                    process_log("ERROR", {"args": args, "error": str(e)})
+                    raise
+            return async_wrapper
+        else:
+            @wraps(func)
+            def sync_wrapper(*args, **kwargs):
+                start_time = time.time()
