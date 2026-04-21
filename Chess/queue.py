@@ -17,3 +17,29 @@ class BiPriorityQueue:
         self.counter += 1
 
     def _clean_deleted_oldest(self):
+        while self.order_queue and self.order_queue[0][3]:
+            self.order_queue.popleft()
+
+    def _clean_deleted_newest(self):
+        while self.order_queue and self.order_queue[-1][3]:
+            self.order_queue.pop()
+
+    def _clean_deleted_min(self):
+        while self.min_heap and self.min_heap[0][2][3]:
+            heapq.heappop(self.min_heap)
+
+    def _clean_deleted_max(self):
+        while self.max_heap and self.max_heap[0][2][3]:
+            heapq.heappop(self.max_heap)
+
+    def dequeue_oldest(self) -> Any:
+        self._clean_deleted_oldest()
+        if not self.order_queue: return None
+        node = self.order_queue.popleft()
+        node[3] = True
+        return node[0]
+
+    def dequeue_newest(self) -> Any:
+        self._clean_deleted_newest()
+        if not self.order_queue: return None
+        node = self.order_queue.pop()
