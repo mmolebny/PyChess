@@ -43,3 +43,23 @@ class BiPriorityQueue:
         self._clean_deleted_newest()
         if not self.order_queue: return None
         node = self.order_queue.pop()
+        node[3] = True
+        return node[0]
+
+    def dequeue_highest(self) -> Any:
+        self._clean_deleted_max()
+        if not self.max_heap: return None
+        _, _, node = heapq.heappop(self.max_heap)
+        node[3] = True
+        return node[0]
+
+    def dequeue_lowest(self) -> Any:
+        self._clean_deleted_min()
+        if not self.min_heap: return None
+        _, _, node = heapq.heappop(self.min_heap)
+        node[3] = True
+        return node[0]
+        
+    def is_empty(self) -> bool:
+        self._clean_deleted_oldest()
+        return len(self.order_queue) == 0
