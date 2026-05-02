@@ -47,3 +47,20 @@ POLICIES = {
     'lru': LRUPolicy,
     'lfu': LFUPolicy
 }
+
+def memoize(policy_name: str = 'lru', max_size: int = 1000):
+    def decorator(func: Callable):
+        policy_class = POLICIES.get(policy_name, LRUPolicy)
+        cache_system = policy_class(max_size)
+
+        @functools.wraps(func)
+        def wrapper(state_obj, *args, **kwargs):
+            state_key = state_obj.get_hash()
+            cached_result = cache_system.get(state_key)
+            if cached_result is not None:
+                return cached_result
+            result = func(state_obj, *args, **kwargs)
+            cache_system.put(state_key, result)
+            return result
+        return wrapper
+    return decorator
