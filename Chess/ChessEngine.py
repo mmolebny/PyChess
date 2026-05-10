@@ -134,3 +134,140 @@
         
         for move in enemy_moves:
             if move.end == (r, c):
+                return True
+        return False
+
+    def _get_all_moves(self):
+        for r in range(8):
+            for c in range(8):
+                piece = self.matrix[r][c]
+                if piece[0] == self.active_color:
+                    if piece[1] == 'p': yield from self._get_pawn_moves(r, c)
+                    elif piece[1] == 'R': yield from self._get_rook_moves(r, c)
+                    elif piece[1] == 'B': yield from self._get_bishop_moves(r, c)
+                    elif piece[1] == 'N': yield from self._get_knight_moves(r, c)
+                    elif piece[1] == 'Q': yield from self._get_queen_moves(r, c)
+                    elif piece[1] == 'K': yield from self._get_king_moves(r, c)
+
+    def _get_pawn_moves(self, r: int, c: int):
+        if self.active_color == 'w':
+            if self.matrix[r-1][c] == "--":
+                yield Action((r, c), (r-1, c), self.matrix)
+                if r == 6 and self.matrix[r-2][c] == "--":
+                    yield Action((r, c), (r-2, c), self.matrix)
+            if c - 1 >= 0:
+                if self.matrix[r-1][c-1][0] == 'b':
+                    yield Action((r, c), (r-1, c-1), self.matrix)
+                elif (r-1, c-1) == self.en_passant_target:
+                    yield Action((r, c), (r-1, c-1), self.matrix, is_ep=True)
+            if c + 1 <= 7:
+                if self.matrix[r-1][c+1][0] == 'b':
+                    yield Action((r, c), (r-1, c+1), self.matrix)
+                elif (r-1, c+1) == self.en_passant_target:
+                    yield Action((r, c), (r-1, c+1), self.matrix, is_ep=True)
+        else:
+            if self.matrix[r+1][c] == "--":
+                yield Action((r, c), (r+1, c), self.matrix)
+                if r == 1 and self.matrix[r+2][c] == "--":
+                    yield Action((r, c), (r+2, c), self.matrix)
+            if c - 1 >= 0:
+                if self.matrix[r+1][c-1][0] == 'w':
+                    yield Action((r, c), (r+1, c-1), self.matrix)
+                elif (r+1, c-1) == self.en_passant_target:
+                    yield Action((r, c), (r+1, c-1), self.matrix, is_ep=True)
+            if c + 1 <= 7:
+                if self.matrix[r+1][c+1][0] == 'w':
+                    yield Action((r, c), (r+1, c+1), self.matrix)
+                elif (r+1, c+1) == self.en_passant_target:
+                    yield Action((r, c), (r+1, c+1), self.matrix, is_ep=True)
+
+    def _get_rook_moves(self, r: int, c: int):
+        directions = ((-1, 0), (0, -1), (1, 0), (0, 1))
+        enemy = "b" if self.active_color == 'w' else "w"
+        for d in directions:
+            for i in range(1, 8):
+                end_row = r + d[0] * i
+                end_col = c + d[1] * i
+                if 0 <= end_row < 8 and 0 <= end_col < 8:
+                    target = self.matrix[end_row][end_col]
+                    if target == "--":
+                        yield Action((r, c), (end_row, end_col), self.matrix)
+                    elif target[0] == enemy:
+                        yield Action((r, c), (end_row, end_col), self.matrix)
+                        break
+                    else: break
+                else: break
+
+    def _get_bishop_moves(self, r: int, c: int):
+        directions = ((-1, -1), (-1, 1), (1, -1), (1, 1))
+        enemy = "b" if self.active_color == 'w' else "w"
+        for d in directions:
+            for i in range(1, 8):
+                end_row = r + d[0] * i
+                end_col = c + d[1] * i
+                if 0 <= end_row < 8 and 0 <= end_col < 8:
+                    target = self.matrix[end_row][end_col]
+                    if target == "--":
+                        yield Action((r, c), (end_row, end_col), self.matrix)
+                    elif target[0] == enemy:
+                        yield Action((r, c), (end_row, end_col), self.matrix)
+                        break
+                    else: break
+                else: break
+
+    def _get_knight_moves(self, r: int, c: int):
+        moves = ((-2, -1), (-2, 1), (-1, -2), (-1, 2), (1, -2), (1, 2), (2, -1), (2, 1))
+        for m in moves:
+            end_row = r + m[0]
+            end_col = c + m[1]
+            if 0 <= end_row < 8 and 0 <= end_col < 8:
+                if self.matrix[end_row][end_col][0] != self.active_color:
+                    yield Action((r, c), (end_row, end_col), self.matrix)
+
+    def _get_queen_moves(self, r: int, c: int):
+        yield from self._get_rook_moves(r, c)
+        yield from self._get_bishop_moves(r, c)
+
+    def _get_king_moves(self, r: int, c: int):
+        moves = ((-1, -1), (-1, 0), (-1, 1), (0, -1), (0, 1), (1, -1), (1, 0), (1, 1))
+        for i in range(8):
+            end_row = r + moves[i][0]
+            end_col = c + moves[i][1]
+            if 0 <= end_row < 8 and 0 <= end_col < 8:
+                if self.matrix[end_row][end_col][0] != self.active_color:
+                    yield Action((r, c), (end_row, end_col), self.matrix)
+
+    def _get_castle_moves(self, r: int, c: int, moves: list):
+        if self.castling_rights[f"{self.active_color}_ks"]:
+            if self.matrix[r][c+1] == '--' and self.matrix[r][c+2] == '--':
+                if not self._is_attacked(r, c+1) and not self._is_attacked(r, c+2):
+                    moves.append(Action((r, c), (r, c+2), self.matrix, is_castle=True))
+                    
+        if self.castling_rights[f"{self.active_color}_qs"]:
+            if self.matrix[r][c-1] == '--' and self.matrix[r][c-2] == '--' and self.matrix[r][c-3] == '--':
+                if not self._is_attacked(r, c-1) and not self._is_attacked(r, c-2):
+                    moves.append(Action((r, c), (r, c-2), self.matrix, is_castle=True))
+
+
+class Action:
+    def __init__(self, start: tuple, end: tuple, grid: list, is_ep=False, is_castle=False):
+        self.start = start
+        self.end = end
+        self.piece = grid[start[0]][start[1]]
+        self.captured = grid[end[0]][end[1]]
+        
+        self.is_promotion = (self.piece[1] == 'p' and end[0] in (0, 7))
+        self.is_en_passant = is_ep
+        if self.is_en_passant:
+            self.captured = 'wp' if self.piece == 'bp' else 'bp'
+            
+        self.is_castle = is_castle
+        self.uid = self.start[0] * 1000 + self.start[1] * 100 + self.end[0] * 10 + self.end[1]
+
+    def __eq__(self, other) -> bool:
+        return isinstance(other, Action) and self.uid == other.uid
+
+    def __str__(self) -> str:
+        cols = {0: 'a', 1: 'b', 2: 'c', 3: 'd', 4: 'e', 5: 'f', 6: 'g', 7: 'h'}
+        rows = {0: '8', 1: '7', 2: '6', 3: '5', 4: '4', 5: '3', 6: '2', 7: '1'}
+        return f"{cols[self.start[1]]}{rows[self.start[0]]}{cols[self.end[1]]}{rows[self.end[0]]}"
