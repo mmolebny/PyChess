@@ -36,3 +36,41 @@ def compute_best_action(state, actions: list, queue) -> None:
 def _ab_pruning(state, actions, depth, alpha, beta, color_sign) -> int:
     global optimal_action
     if depth == 0:
+        return color_sign * _evaluate_heuristic(state)
+
+    max_score = -INFINITY
+    for action in actions:
+        state.apply(action)
+        next_moves = state.generate_legal_actions()
+        score = -_ab_pruning(state, next_moves, depth - 1, -beta, -alpha, -color_sign)
+        state.revert()
+
+        if score > max_score:
+            max_score = score
+            if depth == SEARCH_DEPTH:
+                optimal_action = action
+                
+        if max_score > alpha:
+            alpha = max_score
+        if alpha >= beta:
+            break
+            
+    return max_score
+
+@memoize(policy_name='lru', max_size=2000)
+def _evaluate_heuristic(state) -> int:
+    if state.is_mate:
+        return -INFINITY if state.active_color == 'w' else INFINITY
+    if state.is_draw:
+        return 0
+
+    score = 0
+    for row in state.matrix:
+        for piece in row:
+            if piece != "--":
+                piece_value = WEIGHTS[piece[1]]
+                if piece[0] == 'w':
+                    score += piece_value
+                else:
+                    score -= piece_value
+    return score
